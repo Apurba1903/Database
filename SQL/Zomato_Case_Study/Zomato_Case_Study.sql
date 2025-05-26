@@ -64,7 +64,61 @@ WHERE MONTHNAME(DATE(date)) = 'May'
 GROUP BY t1.r_id
 ORDER BY Revenue DESC;
 
--- Extra. Month by Month revenue for a particular resturant.
+-- 10. Find restaurants with sales > x
+SELECT r_name, SUM(amount) AS 'Revenue'
+FROM orders t1
+JOIN restaurants t2
+ON t1.r_id = t2.r_id
+GROUP BY t1.r_id
+HAVING Revenue > 1500;
+
+-- 11. Find customers who have never ordered
+SELECT user_id, name
+FROM users
+EXCEPT
+SELECT t1.user_id, name
+FROM orders t1
+JOIN users t2
+ON t1.user_id = t2.user_id;
+
+-- 12. Show order details of a particular customer in a given date range
+SELECT t1.order_id, date, f_name
+FROM orders t1
+JOIN order_details t2
+ON t1.order_id = t2.order_id
+JOIN food t3
+ON t2.f_id = t3.f_id
+WHERE user_id = 4
+AND date BETWEEN '2022-05-15' AND '2022-06-15';
+
+-- 13. Customer favourite food [NOT SOLVED]
+SELECT t1.user_id,  t3.f_id, COUNT(*) AS 'Total'
+FROM users t1
+JOIN orders t2
+ON t1.user_id = t2.user_id
+JOIN order_details t3
+ON t2.order_id = t3.order_id
+GROUP BY t1.user_id, t3.f_id
+ORDER BY Total DESC;
+
+-- 14. Find most costly restaurants(AVG price/dish)
+SELECT r_name, COUNT(*), ROUND(SUM(price)/COUNT(*),2) AS 'AvgPrice'
+FROM menu t1
+JOIN restaurants t2
+ON t1.r_id = t2.r_id
+GROUP BY t1.r_id
+ORDER BY AvgPrice DESC
+LIMIT 1;
+
+-- 15. Find delivery partner compensation using the formula (deliveries * 100 + 1000*avg_rating)
+SELECT t2.partner_name, ((COUNT(*) * 100) + (AVG(delivery_rating) * 1000)) AS 'Salary'
+FROM orders t1
+JOIN delivery_partner t2
+ON t1.partner_id = t2.partner_id
+GROUP BY t1.partner_id
+ORDER BY Salary DESC;
+
+-- 16. Find revenue per month for a restaurant
 SELECT  MONTHNAME(DATE(date)) AS 'Month_Name', SUM(amount) AS 'Revenue'
 FROM orders t1
 JOIN restaurants t2
@@ -72,35 +126,30 @@ ON t1.r_id = t2.r_id
 WHERE r_name = 'kfc'
 GROUP BY  MONTHNAME(DATE(date));
 
--- 10. Find restaurants with sals > x
-
-
--- 11. Find customers who have never ordered
-
-
--- 12. Show order details of a particular customer in a given date range
-
-
--- 13. Customer favourite food
-
-
--- 14. Find most costly restaurants(AVG price/dish)
-
-
--- 15. Find delivery partner compensation using the formula (deliveries * 100 + 1000*avg_rating)
-
-
--- 16. Find revenue per month for a restaurant
-
-
 -- 17. Find correlation between delivery_time and total rating
-
+SELECT 
+    (AVG(delivery_time * (delivery_rating + restaurant_rating)) - 
+     AVG(delivery_time) * AVG(delivery_rating + restaurant_rating)) /
+    (STDDEV(delivery_time) * STDDEV(delivery_rating + restaurant_rating))
+    AS correlation_coefficient
+FROM orders;
 
 -- 18. Find correlation between order and avg price for all restaurants
-
+# CORR does not exist in MySQL. We have to use formula.
 
 -- 19. Find all the veg restaurants
-
+SELECT r_name
+FROM menu t1
+JOIN food t2
+ON t1.f_id = t2.f_id
+JOIN restaurants t3
+ON t1.r_id = t3.r_id
+GROUP BY t1.r_id
+HAVING MIN(type) = 'Veg' AND MAX(type) = 'Veg';
 
 -- 20. Find min and max order value for all the customers
-
+SELECT name, MIN(amount), MAX(amount), AVG(amount)
+FROM orders t1
+JOIN users t2
+ON t1.user_id = t2.user_id
+GROUP BY t1.user_id;
