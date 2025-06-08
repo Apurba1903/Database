@@ -76,36 +76,64 @@ ORDER BY `Condition` ASC, Drug ASC;
 
 
 # Q-11 What is the percentage change in the number of reviews for each drug between the previous row and the current row? Show the results in descending order by percentage change.
-
-
-
+SELECT 	`Condition`,
+				Drug,
+                Reviews,
+                (Reviews - LAG(Reviews) OVER(PARTITION BY `Condition`, Drug ORDER BY Reviews DESC)) * 100 
+														/ LAG(Reviews) OVER(PARTITION BY `Condition`, Drug ORDER BY Reviews DESC) 
+																						AS pct_change
+FROM drug_clean
+ORDER BY pct_change DESC;
 
 
 
 # Q-12 What is the percentage of total satisfaction level for each drug type (RX, OTC, RX/OTC)? Show the results in descending order by drug type and percentage of total satisfaction.
-
-
-
+WITH temp_df AS (
+			SELECT Type,
+							Satisfaction,
+							ROUND(SUM(Satisfaction) OVER(PARTITION BY Type) * 100 
+														/ SUM(Satisfaction) OVER(), 2) 
+																			AS pct_total_satisfaction
+			FROM drug_clean
+			WHERE Type IN ('RX', 'OTC', 'RX/OTC')
+)
+SELECT DISTINCT Type, pct_total_satisfaction
+FROM temp_df
+ORDER BY Type ASC, pct_total_satisfaction DESC;
 
 
 
 # Q-13 What is the cumulative sum of effective ratings for each medical condition and drug form combination? Show the results in ascending order by medical condition, drug form and the name of the drug.
-
-
-
+SELECT 	`Condition`, 
+				Form, 
+				Drug, 
+                Effective, 
+				SUM(Effective) OVER(PARTITION BY `Condition`, Form ORDER BY Drug ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+													AS cumulative_sum_effective
+FROM drug_clean
+ORDER BY `Condition` ASC, Form ASC, Drug ASC;
 
 
 
 # Q-14 What is the rank of the average ease of use for each drug type (RX, OTC, RX/OTC)? Show the results in descending order by rank and drug type.
-
-
-
+SELECT	Type,
+				AVG(EaseOfUse) AS 'average_ease_of_use',
+                RANK() OVER(ORDER BY AVG(EaseOfUse) DESC) AS 'rank'
+FROM drug_clean
+WHERE Type IN ('RX', 'OTC', 'RX/OTC')
+GROUP BY Type;
 
 
 
 # Q-15 For each condition, what is the average effectiveness of the top 3 most reviewed drugs?
-
-
-
-
+SELECT *
+FROM (
+			SELECT	`Condition`,
+							Drug,
+							ROUND(Reviews, 2) AS 'Reviews',
+							ROUND(AVG(Effective) OVER(PARTITION BY `Condition`, Drug ORDER BY Reviews DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), 2) AS avg_effectiveness,
+							RANK() OVER(PARTITION BY `Condition` ORDER BY Reviews DESC) AS 'rank_num'
+			FROM drug_clean
+) t
+WHERE rank_num <= 3;
 
