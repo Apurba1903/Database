@@ -131,7 +131,9 @@ FROM (
 			SELECT	`Condition`,
 							Drug,
 							ROUND(Reviews, 2) AS 'Reviews',
-							ROUND(AVG(Effective) OVER(PARTITION BY `Condition`, Drug ORDER BY Reviews DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), 2) AS avg_effectiveness,
+							ROUND(AVG(Effective) OVER(PARTITION BY `Condition`, Drug ORDER BY Reviews 
+																DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), 2) 
+																									AS avg_effectiveness,
 							RANK() OVER(PARTITION BY `Condition` ORDER BY Reviews DESC) AS 'rank_num'
 			FROM drug_clean
 ) t
