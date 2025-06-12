@@ -1,7 +1,7 @@
 USE sql_cx_live;
 
 
-CREATE TABLE Employees (
+CREATE TABLE employees (
     emp_id INT PRIMARY KEY,
     emp_name VARCHAR(100),
     emp_department VARCHAR(50),
@@ -10,7 +10,7 @@ CREATE TABLE Employees (
 );
 
 
-INSERT INTO Employees (emp_id, emp_name, emp_department, emp_salary, emp_duration_in_days)
+INSERT INTO employees (emp_id, emp_name, emp_department, emp_salary, emp_duration_in_days)
 VALUES
 (1, 'John Doe', 'IT', 60000, 365),
 (2, 'Jane Smith', 'HR', 50000, 730),
@@ -34,106 +34,133 @@ VALUES
 (20, 'Rachel Platinum', 'Marketing', 46000, 365);
 
 
-select * from employees;
+SELECT * FROM employees;
 
 
--- CTE-  STANDS FOR COMMON TABLE EXPRESSION , THAT WE GENERALLY USE WHEN WE ARE USING A SAME SUB-QUERY MULTIPLE TIMES
--- TO ENHANCE REDABILITY ,REDUCE COMPLEXITY , ENHANCE PERFORMANCE.
+-- CTE-  STANDS FOR COMMON TABLE EXPRESSION.
+-- THAT WE GENERALLY USE WHEN WE ARE USING A SAME SUB-QUERY MULTIPLE TIMES
+			-- TO ENHANCE REDABILITY
+			-- REDUCE COMPLEXITY
+			-- ENHANCE PERFORMANCE.
 -- WE WRITE IT USING WITH CLAUSE.
--- CTE LIFE IS  ONLY TILL  THE EXECUTION+FORMATION {TOGETHER} OF THE QUERY
+-- CTE LIFE IS  ONLY TILL  THE EXECUTION + FORMATION {TOGETHER} OF THE QUERY
 -- QUERY WITH "WITH CLAUSE"
 -- QUERY SUB-FOLDING.
 
 
+SELECT * FROM employees;
+
 -- FIND THE EMPLOYEES WHOSE SALARY IS IN THE RANGE +-2000 OF AVERAGE SALARY WHERE DEPARTMENT IS abc  AND EMP_DURA>200.
 -- LOGIC
+
 --  STEP 1 WE NEED TO FIND AVERAGE SALARY ON THE BASIS OF GIVEN CONDITION.
+SELECT AVG(emp_salary) AS Average
+FROM employees
+WHERE emp_department = 'Sales' AND emp_duration_in_days > 200;
 
 --  STEP 2 FROM  THE TABLE , FIND THE EMPLOYESS WHO LIE IN RANGE OF THE GIVEN AVERAGE.
+SELECT * 
+FROM employees
+WHERE emp_salary > 	(	
+										SELECT AVG(emp_salary) AS Average
+										FROM employees
+										WHERE emp_department = 'Sales' AND emp_duration_in_days > 200
+									) - 2000
+AND		emp_salary < 	(	
+										SELECT AVG(emp_salary) AS Average
+										FROM employees
+										WHERE emp_department = 'Sales' AND emp_duration_in_days > 200
+									) + 2000;
 
-
--- ISSUE 
-     -- DECREASES REDABILITY.
-     -- COMPLEXITY INCREASES.
-     -- DECREASES PERFORMANCE.
-     
-     
+-- PROBLEM WITH THIS APPROACH	 
+		 -- DECREASES REDABILITY.
+		 -- COMPLEXITY INCREASES.
+		 -- DECREASES PERFORMANCE.
+         
 -- USING CTE.
+WITH t AS 
+(	
+	SELECT AVG(emp_salary) AS avg_salary
+	FROM employees
+	WHERE emp_department = 'Sales' AND emp_duration_in_days > 200
+)
+SELECT * 
+FROM employees 
+WHERE 	emp_salary > ( SELECT avg_salary FROM t ) - 2000
+AND 		emp_salary < ( SELECT avg_salary FROM t ) + 2000;
+
 
 
 -- SELECT THE DEPARTMENT FROM EMPLOYEES TABLE  WHOSE AVERAGE SALARY  IS MORE THAN AVERAGE SALARY  ACROSS ALL DEPARTMENTS
 -- LOGIC
--- STEP 1 -  AVERAGE SALARY OF EACH DEPARTMENT    [DEP_AVG]
 
+-- STEP 1 -  AVERAGE SALARY OF EACH DEPARTMENT    [DEP_AVG]
+SELECT emp_department, ROUND(AVG(emp_salary), 2) AS 'dep_avg'
+FROM employees
+GROUP BY emp_department;
 
 -- STEP 2 - FIND AVERAGE SALARY WITH RESPECT TO ALL THE DEPARTMENT   [ENTIRE_AVG]
-
+SELECT ROUND(AVG(dep_avg), 2) AS 'entire_avg'
+FROM (
+				SELECT emp_department, AVG(emp_salary) AS 'dep_avg'
+				FROM employees
+				GROUP BY emp_department
+			) t;
 
 -- STEP 3 - FIND THE DEPARTMENT WHERE DEP_AVG> ENTIRE_AVG
+SELECT *
+FROM  
+	(	
+				SELECT emp_department, ROUND(AVG(emp_salary), 2) AS 'dep_avg'
+				FROM employees
+				GROUP BY emp_department
+	)  k
+JOIN
+(	
+	SELECT ROUND(AVG(dep_avg), 2) AS 'entire_avg'
+	FROM (
+							SELECT emp_department, ROUND(AVG(emp_salary), 2) AS 'dep_avg'
+							FROM employees
+							GROUP BY emp_department
+				) t
+) m
+ON dep_avg > entire_avg;
+
 
 
 -- WITH CTE.
+WITH temp AS
+(
+		SELECT emp_department, ROUND(AVG(emp_salary), 2) AS 'dep_avg'
+		FROM employees
+		GROUP BY emp_department
+)
+SELECT *
+FROM temp
+WHERE dep_avg > ( SELECT ROUND(AVG(dep_avg), 2) FROM temp );
 
 
 
+-- MULTIPLE CTE
+-- WHAT IS THE AVERAGE SALARY AND COUNT OF EACH DEPARTMENT
+WITH 
+temp1 AS
+(
+		SELECT emp_department, ROUND(AVG(emp_salary), 2) AS 'dep_avg'
+		FROM employees
+		GROUP BY emp_department
+),
+temp2 AS 
+(	
+	SELECT emp_department, COUNT(emp_id) AS 'employee_number'
+	FROM employees
+	GROUP BY emp_department
+)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+SELECT *
+FROM temp1
+JOIN temp2
+ON temp1.emp_department = temp2.emp_department;
 
 
 
